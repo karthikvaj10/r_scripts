@@ -1,7 +1,6 @@
 library(bigrquery)
-project <- "nestaway-development" # put your projectID here
-setwd("/Users/nestaway/Desktop")
-sql <- 'SELECT * FROM [nestaway-development:search.sav]
-where date(timestamp) >= "2018-05-01";'
+project <- "project_name" # put your projectID here
+setwd("/Users/user_name/Desktop")
+sql <- 'your_query_here;'
 data <- query_exec(sql, billing = project, project = project, max_pages = Inf)
-write.csv(data,file="sav.csv",row.names = F)
+write.csv(data,file="file.csv",row.names = F)
