@@ -1,6 +1,6 @@
 library(bigrquery)
 project <- "project_name" # put your projectID here
-setwd("/Users/user_name/Desktop")
+setwd("path_name") # enter path of the working directory
 sql <- 'your_query_here;'
 data <- query_exec(sql, billing = project, project = project, max_pages = Inf)
 write.csv(data,file="file.csv",row.names = F)
