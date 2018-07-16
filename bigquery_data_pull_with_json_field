@@ -1,0 +1,13 @@
+library(bigrquery)
+library(RMySQL)
+library(jsonlite)
+library(plyr)
+setwd("path_name") #set path of working directory
+project <- "sample_project" #enter project name
+sql <- 'query_here' #query here
+bigq_data <- query_exec(sql, billing = project, project = project, max_pages = Inf)
+mydb = dbConnect(MySQL(), user='****', password='****', dbname='****',host='****')
+rs = dbSendQuery(mydb,  sql)
+mysql_data = fetch(rs, n=-1)
+do.call(rbind, lapply(bigq_data$event_value,jsonlite::fromJSON)) #give details of json field to parse in dataset
+write.csv(data,file = "sample.csv",row.names = F)
