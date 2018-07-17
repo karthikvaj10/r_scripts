@@ -1,0 +1,6 @@
+library(RMySQL)
+mydb = dbConnect(MySQL(), user='***', password='***', dbname='***', host='***')
+rs = dbSendQuery(mydb,  'your_query_here')
+data = fetch(rs, n=-1)
+setwd("path_name")
+write.csv(data,file = "data.csv",row.names = F)
