@@ -1,0 +1,25 @@
+setwd("path_name")
+require(RGoogleAnalytics)
+client.id <- "your_client_id"
+client.secret <- "your_client_secret"
+token <- Auth(client.id,client.secret)
+
+data <- read.csv(file = “source.csv",header = T)
+
+for (i in 1:33){
+	
+	start_date <- strftime(data[i,2],"%Y-%m-%d")
+	end_date <- strftime(data[i,3],"%Y-%m-%d")
+
+	query.list <- Init(start.date = start_date,end.date = end_date,metrics = "ga:users",segment = "",max.results = 10000,table.id = "table_id")
+
+	ga.query <- QueryBuilder(query.list)
+	ga.data<-GetReportData(ga.query,token,paginate_query=F)
+	data[i,6] <- ga.data[1,1]
+
+}
+
+names(data)[1] <- NA #adding new column
+invisible(GetProfiles(token))  #refreshing token credentials for 401 error invalid credentials
+
+write.csv(data,file="final.csv",row.names = F)
