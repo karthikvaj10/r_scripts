@@ -1,0 +1,555 @@
+## =============================================================================
+## Author: Michelle Molina
+## Email: Michelle@ConnectingEvidence.com
+## Edits: 
+## =============================================================================
+
+# ==============================================================================
+# 20240606  - KP Secondary Source - Poverty Status in the Past 12 Months
+# ==============================================================================
+
+# ==============================================================================
+# clean around
+# ==============================================================================
+rm(list=ls()) # environment
+graphics.off() # plotting devices
+cat("\014") # console
+# ==============================================================================
+
+# ==============================================================================
+# load the necessary packages (install if necessary)
+# ==============================================================================
+
+install.packages("tidyverse","tidycensus","reshape2","janitor","googledrive","googlesheets4","dplyr","tidyr","data.table")
+
+library(tidyverse)
+library(tidycensus)
+library(googledrive)
+library(googlesheets4)
+library(dplyr)
+library(tidyr)
+library(janitor)
+library(data.table)
+
+# ==============================================================================
+#get census API
+# ==============================================================================
+
+census_api_key("11794acb51b5cdc0930db0eeb61df5358faa01fa", install = TRUE,overwrite=TRUE)
+
+# ?census_api_key
+# ?get_acs
+
+# ==============================================================================
+# Obtain the data from ACS
+# ==============================================================================
+
+#list variables wanted from census
+var_list <- list("S2701_C01_001E", #CivTotal 
+                 "S2701_C04_001E", #CivUninsuredTotal 
+                 "S2701_C01_002E", #CivAgeUnder6
+                 "S2701_C04_002E", #UninsuredAgeUnder6
+                 "S2701_C01_003E", #CivAge6to18
+                 "S2701_C04_003E", #Uninsured6to18              
+                 "S2701_C01_004E", #CivAge19to25
+                 "S2701_C04_004E", #Uninsured19to25  
+                 "S2701_C01_005E", #CivAge26to34
+                 "S2701_C04_005E", #Uninsured26to34
+				"S2701_C01_006E", #Civ35to44years
+				"S2701_C04_006E", #Uninsured35to44years
+				"S2701_C01_007E", #Civ45to54years
+				"S2701_C04_007E", #Uninsured45to54years
+				"S2701_C01_008E", #Civ55to64years
+				"S2701_C04_008E", #Uninsured55to64years
+				"S2701_C01_009E", #Civ65to74years
+				"S2701_C04_009E", #Uninsured65to74years
+				"S2701_C01_010E", #Civ75yearsandolder
+				"S2701_C04_010E", #Uninsured75yearsandolder
+				"S2701_C01_014E", #CivMale
+				"S2701_C04_014E", #UninsuredMale
+				"S2701_C01_015E", #CivFemale
+				"S2701_C04_015E", #UninsuredFemale
+				"S2701_C01_017E", #CivBlackorAfricanAmericanalone
+				"S2701_C04_017E", #UninsuredBlackorAfricanAmericanalone
+				"S2701_C01_018E", #CivAmericanIndianandAlaskaNativealone
+				"S2701_C04_018E", #UninsuredAmericanIndianandAlaskaNativealone
+				"S2701_C01_019E", #CivAsianalone
+				"S2701_C04_019E", #UninsuredAsianalone
+				"S2701_C01_020E", #CivNativeHawaiianandOtherPacificIslanderalone
+				"S2701_C04_020E", #UninsuredNativeHawaiianandOtherPacificIslanderalone
+				"S2701_C01_021E", #CivSomeotherracealone
+				"S2701_C04_021E", #UninsuredSomeotherracealone
+				"S2701_C01_022E", #CivTwoormoreraces
+				"S2701_C04_022E", #UninsuredTwoormoreraces
+				"S2701_C01_023E", #CivHispanicorLatino(ofanyrace)
+				"S2701_C04_023E", #UninsuredHispanicorLatino(ofanyrace)
+				"S2701_C01_024E", #CivWhitealone,notHispanicorLatino
+				"S2701_C04_024E", #UninsuredWhitealone,notHispanicorLatino
+				"S2701_C01_026E", #CivInfamilyhouseholdsInmarriedcouplefamilies
+				"S2701_C04_026E", #UninsuredInfamilyhouseholdsInmarriedcouplefamilies
+				"S2701_C01_028E", #CivInfamilyhouseholdsInotherfamiliesMalereferenceperson,nospousepresent
+				"S2701_C04_028E", #UninsuredMalereferenceperson,nospousepresent
+				"S2701_C01_029E", #CivInfamilyhouseholdsInotherfamiliesFemalereferenceperson,nospousepresent
+				"S2701_C04_029E", #UninsuredFemalereferenceperson,nospousepresent
+				"S2701_C01_031E", #CivNativeborn
+				"S2701_C04_031E", #UninsuredNativeborn
+				"S2701_C01_033E", #CivForeignbornNaturalized
+				"S2701_C04_033E", #UninsuredForeignbornNaturalized
+				"S2701_C01_034E", #CivForeignbornNotacitizen
+				"S2701_C04_034E", #UninsuredForeignbornNotacitizen
+				"S2701_C01_035E", #CivWithadisability
+				"S2701_C04_035E", #UninsuredWithadisability
+				"S2701_C01_038E", #CivLessthanhighschoolgraduate
+				"S2701_C04_038E", #UninsuredLessthanhighschoolgraduate
+				"S2701_C01_039E", #CivHighschoolgraduate(includesequivalency)
+				"S2701_C04_039E", #UninsuredHighschoolgraduate(includesequivalency)
+				"S2701_C01_040E", #CivSomecollegeorassociate'sdegree
+				"S2701_C04_040E", #UninsuredSomecollegeorassociatesdegree
+				"S2701_C01_041E", #CivBachelor'sdegreeorhigher
+				"S2701_C04_041E", #UninsuredBachelorsdegreeorhigher
+				"S2701_C01_048E", #CivWorkedfull-time,yearroundinthepast12months
+				"S2701_C04_048E", #UninsuredWorkedfull-time,yearroundinthepast12months
+				"S2701_C01_049E", #CivWorkedlessthanfull-time,yearroundinthepast12months
+				"S2701_C04_049E", #UninsuredWorkedlessthanfull-time,yearroundinthepast12months
+				"S2701_C01_050E", #CivDidnotwork
+				"S2701_C04_050E", #UninsuredDidnotwork
+				"S2701_C01_061E", #CivBelow100percentofthepovertythreshold
+				"S2701_C04_061E" #UninsuredBelow100percentofthepovertythreshold                 
+                 ) ### Update variables 
+
+
+### 2022 Data 
+
+#grab zip code variables for one year
+Data2022 <- get_acs(
+  geography ="zcta",
+  variables = var_list,
+  year = 2022,
+  zcta = c("93901",
+           "93905",
+           "93906",
+           "93908",
+           "93926",
+           "93927",
+           "93930",
+           "93933",
+           "93940",
+           "93943",
+           "93944",
+           "93955",
+           "93960",
+           "95012",
+           "95076"),
+  moe_level = 95
+)
+
+## NOTE: MOE = Margin Of Error 
+
+#Make dataset Wide
+Data2022 <- Data2022 %>% pivot_wider(names_from = variable, values_from = c("estimate", "moe"))
+
+#add total column for the year 
+Data2022 <- Data2022 %>%
+  adorn_totals("row")
+
+#add year to data
+Data2022$year <- 2022
+
+
+### 2021 Data 
+
+#grab zip code variables for one year
+Data2021 <- get_acs(
+  geography ="zcta",
+  variables = var_list,
+  year = 2021,
+  zcta = c("93901",
+           "93905",
+           "93906",
+           "93908",
+           "93926",
+           "93927",
+           "93930",
+           "93933",
+           "93940",
+           "93943",
+           "93944",
+           "93955",
+           "93960",
+           "95012",
+           "95076"),
+  moe_level = 95
+)
+
+## NOTE: MOE = Margin Of Error 
+
+#Make dataset Wide
+Data2021 <- Data2021 %>% pivot_wider(names_from = variable, values_from = c("estimate", "moe"))
+
+#add total column for the year 
+Data2021 <- Data2021 %>%
+  adorn_totals("row")
+
+#add year to data
+Data2021$year <- 2021
+
+
+### 2020 Data 
+
+#grab zip code variables for one year
+Data2020 <- get_acs(
+  geography ="zcta",
+  variables = var_list,
+  year = 2020,
+  zcta = c("93901",
+           "93905",
+           "93906",
+           "93908",
+           "93926",
+           "93927",
+           "93930",
+           "93933",
+           "93940",
+           "93943",
+           "93944",
+           "93955",
+           "93960",
+           "95012",
+           "95076"),
+  moe_level = 95
+)
+
+## NOTE: MOE = Margin Of Error 
+
+#Make dataset Wide
+Data2020 <- Data2020 %>% pivot_wider(names_from = variable, values_from = c("estimate", "moe"))
+
+#add total column for the year 
+Data2020 <- Data2020 %>%
+  adorn_totals("row")
+
+#add year to data
+Data2020$year <- 2020
+
+
+### 2019 Data 
+
+#grab zip code variables for one year
+Data2019 <- get_acs(
+  geography ="zcta",
+  variables = var_list,
+  year = 2019,
+  zcta = c("93901",
+           "93905",
+           "93906",
+           "93908",
+           "93926",
+           "93927",
+           "93930",
+           "93933",
+           "93940",
+           "93943",
+           "93944",
+           "93955",
+           "93960",
+           "95012",
+           "95076"),
+  moe_level = 95
+)
+
+## NOTE: MOE = Margin Of Error 
+
+#Make dataset Wide
+Data2019 <- Data2019 %>% pivot_wider(names_from = variable, values_from = c("estimate", "moe"))
+
+#add total column for the year 
+Data2019 <- Data2019 %>%
+  adorn_totals("row")
+
+#add year to data
+Data2019$year <- 2019
+
+
+
+### 2018 Data 
+
+#grab zip code variables for one year
+Data2018 <- get_acs(
+  geography ="zcta",
+  variables = var_list,
+  year = 2018,
+  state = "06",
+  zcta = c("93901",
+           "93905",
+           "93906",
+           "93908",
+           "93926",
+           "93927",
+           "93930",
+           "93933",
+           "93940",
+           "93943",
+           "93944",
+           "93955",
+           "93960",
+           "95012",
+           "95076"),
+  moe_level = 95
+)
+
+## NOTE: MOE = Margin Of Error 
+
+#Make dataset Wide
+Data2018 <- Data2018 %>% pivot_wider(names_from = variable, values_from = c("estimate", "moe"))
+
+#add total column for the year 
+Data2018 <- Data2018 %>%
+  adorn_totals("row")
+
+#add year to data
+Data2018$year <- 2018
+
+
+## NOTE zip code 93944 is not avaiable for 2020, 2019, nor 2018 
+
+# ==============================================================================
+# Combine data sets
+# ==============================================================================
+
+#put all data frames into list
+df_list <- list(Data2022, Data2021, Data2020,Data2019,Data2018)
+
+#merge all data frames in list
+allData <- Reduce(function(x, y) merge(x, y, all=TRUE), df_list)
+
+# ==============================================================================
+# Added percentage of relevant variables 
+# ==============================================================================
+
+#Total 
+allData$totalPercent <- allData$estimate_S2701_C04_001 / allData$estimate_S2701_C01_001
+
+#Ages 
+allData$AgeUnder6 <- allData$estimate_S2701_C04_002 / allData$estimate_S2701_C01_002 
+allData$Age6to18 <- allData$estimate_S2701_C04_003  / allData$estimate_S2701_C01_003 
+allData$Age19to25 <- allData$estimate_S2701_C04_004  / allData$estimate_S2701_C01_004 
+allData$Age26to34 <- allData$estimate_S2701_C04_005  / allData$estimate_S2701_C01_005 
+allData$Age35to44 <- allData$estimate_S2701_C04_006 / allData$estimate_S2701_C01_006
+allData$Age45to54 <- allData$estimate_S2701_C04_007 / allData$estimate_S2701_C01_007
+allData$Age55to64 <- allData$estimate_S2701_C04_008 / allData$estimate_S2701_C01_008
+allData$Age65to74 <- allData$estimate_S2701_C04_009 / allData$estimate_S2701_C01_009
+allData$AgeOlderThan75 <- allData$estimate_S2701_C04_010 / allData$estimate_S2701_C01_010 
+
+
+#Sex
+allData$SexM <- allData$estimate_S2701_C04_014 / allData$estimate_S2701_C01_014
+allData$SexF <- allData$estimate_S2701_C04_015 / allData$estimate_S2701_C01_015
+
+
+#Race
+allData$RaceBlack <- allData$estimate_S2701_C04_017 / allData$estimate_S2701_C01_017
+allData$RaceNative <- allData$estimate_S2701_C04_018 / allData$estimate_S2701_C01_018 
+allData$RaceAsian <- allData$estimate_S2701_C04_019 / allData$estimate_S2701_C01_019
+allData$RacePacificIslander <- allData$estimate_S2701_C04_020 / allData$estimate_S2701_C01_020
+allData$RaceOther <- allData$estimate_S2701_C04_021 / allData$estimate_S2701_C01_021
+allData$RaceTwo <- allData$estimate_S2701_C04_022 / allData$estimate_S2701_C01_022
+allData$RaceLatino <- allData$estimate_S2701_C04_023 / allData$estimate_S2701_C01_023
+allData$RaceWhite <- allData$estimate_S2701_C04_024 / allData$estimate_S2701_C01_024
+
+#Living
+allData$InCoupleFam <- allData$estimate_S2701_C04_026 / allData$estimate_S2701_C01_026
+allData$MaleRef <- allData$estimate_S2701_C04_028 / allData$estimate_S2701_C01_028
+allData$FemaleRef <- allData$estimate_S2701_C04_029 / allData$estimate_S2701_C01_029
+
+#Nativity
+allData$NativeBorn <- allData$estimate_S2701_C04_031 / allData$estimate_S2701_C01_031
+allData$Naturalized <- allData$estimate_S2701_C04_033 / allData$estimate_S2701_C01_033
+allData$NotCitizen <- allData$estimate_S2701_C04_034 / allData$estimate_S2701_C01_034
+
+#Disability
+allData$WithDisability <- allData$estimate_S2701_C04_035 / allData$estimate_S2701_C01_035
+
+
+#Ed
+allData$EdNoHS <- allData$estimate_S2701_C04_038 / allData$estimate_S2701_C01_038 
+allData$EdHS <- allData$estimate_S2701_C04_039 / allData$estimate_S2701_C01_039
+allData$EdSomeCollege <- allData$estimate_S2701_C04_040 / allData$estimate_S2701_C01_040
+allData$EdBA <- allData$estimate_S2701_C04_041 / allData$estimate_S2701_C01_041
+
+
+#Work
+allData$WorkFull <- allData$estimate_S2701_C04_048 / allData$estimate_S2701_C01_048 
+allData$WorkPart <- allData$estimate_S2701_C04_049 / allData$estimate_S2701_C01_049 
+allData$WorkNone <- allData$estimate_S2701_C04_050 / allData$estimate_S2701_C01_050
+
+#Poverty
+allData$BelowPoverty <- allData$estimate_S2701_C04_061 / allData$estimate_S2701_C01_061
+
+# ==============================================================================
+# Remove columns that are not necessary  
+# ==============================================================================
+
+df_new <- allData %>% select(-contains("moe"))
+df_new <- df_new %>% select(-contains("NAME"))
+
+# ==============================================================================
+# Rename columns to make it easier to manage 
+# ==============================================================================
+
+df_new <- df_new %>% rename(total_Estimate = estimate_S2701_C04_001,
+                            Age_Under6_Estimate = estimate_S2701_C04_002,
+                            Age_6to18_Estimate = estimate_S2701_C04_003,
+                            Age_19to25_Estimate = estimate_S2701_C04_004,
+                            Age_26to34_Estimate = estimate_S2701_C04_005,
+                            Age_35to44_Estimate = estimate_S2701_C04_006,
+                            Age_45to54_Estimate = estimate_S2701_C04_007,
+                            Age_55to64_Estimate = estimate_S2701_C04_008,
+                            Age_65to74_Estimate = estimate_S2701_C04_009,
+                            Age_75Above_Estimate = estimate_S2701_C04_010,
+                            Sex_Male_Estimate = estimate_S2701_C04_014,
+                            Sex_Female_Estimate = estimate_S2701_C04_015,
+                            Race_Black_Estimate = estimate_S2701_C04_017,
+                            Race_Native_Estimate = estimate_S2701_C04_018,
+                            Race_Asian_Estimate = estimate_S2701_C04_019,
+                            Race_PacificIslander_Estimate = estimate_S2701_C04_020,
+                            Race_Other_Estimate = estimate_S2701_C04_021,
+                            Race_TwoOrMore_Estimate = estimate_S2701_C04_022,
+                            Race_Latino_Estimate = estimate_S2701_C04_023,
+                            Race_White_Estimate = estimate_S2701_C04_024,
+                            Household_Married_Couple_Estimate = estimate_S2701_C04_026,
+                            Household_Male_Reference_Estimate = estimate_S2701_C04_028,
+                            Household_Female_Reference_Estimate = estimate_S2701_C04_029,
+                            Nativity_Native_Born_Estimate = estimate_S2701_C04_031,
+                            Nativity_Naturalized_Estimate = estimate_S2701_C04_033,
+                            Nativity_Not_Citizen_Estimate = estimate_S2701_C04_034,
+                            Disability_WithDisability_Estimate = estimate_S2701_C04_035,
+                            Ed_NoHighSchool_Estimate = estimate_S2701_C04_038,
+                            Ed_HighSchool_Estimate = estimate_S2701_C04_039,
+                            Ed_Associates_Estimate = estimate_S2701_C04_040,
+                            Ed_Bachelor_Estimate = estimate_S2701_C04_041,
+                            Work_FullTime_Estimate = estimate_S2701_C04_048,
+                            WorkPartTim_Estimate = estimate_S2701_C04_049,
+                            Work_None_Estimate = estimate_S2701_C04_050,
+                            Poverty_Below_100_Percent_Estimate = estimate_S2701_C04_061,
+
+                            total_Total = estimate_S2701_C01_001,
+                            Age_Under6_Total = estimate_S2701_C01_002,
+                            Age_6to18_Total = estimate_S2701_C01_003,
+                            Age_19to25_Total = estimate_S2701_C01_004,
+                            Age_26to34_Total = estimate_S2701_C01_005,
+                            Age_35to44_Total = estimate_S2701_C01_006,
+                            Age_45to54_Total = estimate_S2701_C01_007,
+                            Age_55to64_Total = estimate_S2701_C01_008,
+                            Age_65to74_Total = estimate_S2701_C01_009,
+                            Age_75Above_Total = estimate_S2701_C01_010,
+                            Sex_Male_Total = estimate_S2701_C01_014,
+                            Sex_Female_Total = estimate_S2701_C01_015,
+                            Race_Black_Total = estimate_S2701_C01_017,
+                            Race_Native_Total = estimate_S2701_C01_018,
+                            Race_Asian_Total = estimate_S2701_C01_019,
+                            Race_PacificIslander_Total = estimate_S2701_C01_020,
+                            Race_Other_Total = estimate_S2701_C01_021,
+                            Race_TwoOrMore_Total = estimate_S2701_C01_022,
+                            Race_Latino_Total = estimate_S2701_C01_023,
+                            Race_White_Total = estimate_S2701_C01_024,
+                            Household_Married_Couple_Total = estimate_S2701_C01_026,
+                            Household_Male_Reference_Total = estimate_S2701_C01_028,
+                            Household_Female_Reference_Total = estimate_S2701_C01_029,
+                            Nativity_Native_Born_Total = estimate_S2701_C01_031,
+                            Nativity_Naturalized_Total = estimate_S2701_C01_033,
+                            Nativity_Not_Citizen_Total = estimate_S2701_C01_034,
+                            Disability_WithDisability_Total = estimate_S2701_C01_035,
+                            Ed_NoHighSchool_Total = estimate_S2701_C01_038,
+                            Ed_HighSchool_Total = estimate_S2701_C01_039,
+                            Ed_Associates_Total = estimate_S2701_C01_040,
+                            Ed_Bachelor_Total = estimate_S2701_C01_041,
+                            Work_FullTime_Total = estimate_S2701_C01_048,
+                            WorkPartTim_Total = estimate_S2701_C01_049,
+                            Work_None_Total = estimate_S2701_C01_050,
+                            Poverty_Below_100_Percent_Total = estimate_S2701_C01_061,
+                            
+  							total_Percent = totalPercent,
+							Age_Under6_Percent = AgeUnder6,
+							Age_6to18_Percent = Age6to18,
+							Age_19to25_Percent = Age19to25,
+							Age_26to34_Percent = Age26to34,
+							Age_35to44_Percent = Age35to44,
+							Age_45to54_Percent = Age45to54,
+							Age_55to64_Percent = Age55to64,
+							Age_65to74_Percent = Age65to74,
+							Age_75Above_Percent = AgeOlderThan75,
+							Sex_Male_Percent = SexM,
+							Sex_Female_Percent = SexF,
+							Race_Black_Percent = RaceBlack,
+							Race_Native_Percent = RaceNative,
+							Race_Asian_Percent = RaceAsian,
+							Race_PacificIslander_Percent = RacePacificIslander,
+							Race_Other_Percent = RaceOther,
+							Race_TwoOrMore_Percent = RaceTwo,
+							Race_Latino_Percent = RaceLatino,
+							Race_White_Percent = RaceWhite,
+							Household_Married_Couple_Percent = InCoupleFam,
+							Household_Male_Reference_Percent = MaleRef,
+							Household_Female_Reference_Percent = FemaleRef,
+							Nativity_Native_Born_Percent = NativeBorn,
+							Nativity_Naturalized_Percent = Naturalized,
+							Nativity_Not_Citizen_Percent = NotCitizen,
+							Disability_WithDisability_Percent = WithDisability,
+							Ed_NoHighSchool_Percent = EdNoHS,
+							Ed_HighSchool_Percent = EdHS,
+							Ed_Associates_Percent = EdSomeCollege,
+							Ed_Bachelor_Percent = EdBA,
+							Work_FullTime_Percent = WorkFull,
+							WorkPartTim_Percent = WorkPart,
+							Work_None_Percent = WorkNone,
+							Poverty_Below_100_Percent_Percent = BelowPoverty,
+                            
+                            ZipCode = GEOID)
+
+#colnames(df_new)
+
+# ==============================================================================
+# MakeLong
+# ==============================================================================
+
+df_new <- melt(setDT(df_new), id.vars = c("ZipCode","year"), variable.name = "Category")
+
+
+# ==============================================================================
+# Add column of type
+# ==============================================================================
+
+df_new$Type <- ifelse(grepl("Percent", df_new$Category), "Percent", 
+                      ifelse(grepl("Total", df_new$Category), "Total","Estimate"))
+
+# ==============================================================================
+# Remove String for 
+# ==============================================================================
+
+df_new2 <- df_new %>%
+  mutate_at("Category", str_replace, "_Percent", "")
+
+df_new2 <- df_new2 %>%
+  mutate_at("Category", str_replace, "_Estimate", "")
+
+df_new2 <- df_new2 %>%
+  mutate_at("Category", str_replace, "_Total", "")
+
+# ==============================================================================
+# Print to Sheet 
+# ==============================================================================
+
+# 
+
+Uninsured  <- "https://docs.google.com/spreadsheets/d/1U9_ogsXoLolMkmzRq4naUszVA4nSWN4EOJXsJ-5cuFk/edit?gid=0#gid=0" #copy link of spreadsheet
+UninsuredSheet <- "Uninsured"
+
+if (!drive_has_token()) {
+  drive_auth()
+  gs4_auth(token = drive_token())
+}
+
+#This overwrites what is on the tab in the actual google sheet
+sheet_write(df_new2, 
+            ss=Uninsured,
+            sheet=UninsuredSheet)
